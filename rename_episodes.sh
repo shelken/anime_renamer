@@ -1,4 +1,1 @@
-for path in "$@"
-do 
-    python /<YOUR_PATH>/anime_renamer-master/reg_match.py --path="$path";
-done
+python3 /WORK_DIR/anime_renamer/reg_match.py --root="$1" --name="$2";
