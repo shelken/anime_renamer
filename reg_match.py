@@ -11,10 +11,11 @@ from pathlib import Path
 log_name=op.join(op.dirname(op.realpath(__file__)), 'log.txt')
 
 # Episode Regular Expression Matching Rules
-episode_rules = [r'\[Nekomoe kissaten\]\[(?!\[\]).+\]\[(\d{1,2})\].*'
-                 ]
+episode_rules = [r'\[Nekomoe kissaten\]\[(?!\[\]).+\]\[(\d{1,2})(?:END)?\].*',
+                 r'\[HYSUB\].*\[(\d{1,2})(?:END)?\].*']
 # Suffixs of files we are going to rename
 suffixs = ['mp4', 'mkv', 'avi', 'mov']
+suffixsRex = "\.(mp4|mkv|avi|mov)$"
 sys.stdout = io.TextIOWrapper(buffer=sys.stdout.buffer,encoding='utf8')
 
 # Parse the input arguments. You can whether input only root, or only path, or both root and name.
@@ -27,13 +28,22 @@ parser.add_argument('--path', default='',
                     help='The file full path of the input file.')
 
 
-def rename(seriesName, seasonName, root, name):
+def rename(root, name):
     root = Path(root)
-
+    seriesName = ''
+    seasonName = ''
+    if args.root != '':
+        rootStr = op.abspath(root)
+        match = re.match(r'.+?\/(\d{1,2})', rootStr)
+        if match is not None:
+            seriesName = Path(match.group(0)).parent.name
+            seasonName = match.group(1)
+    if seasonName == '' or seriesName == '':
+        return
     for rule in episode_rules:
-        matchObj = re.match(rule, name, re.I)
+        matchObj = re.match(rule + suffixsRex, name, re.I)
         if matchObj is not None:
-            new_name = f'{seriesName} - S{seasonName}E{matchObj.group(1)}'
+            new_name = f'{seriesName} - S{seasonName}E{matchObj.group(1)}.{matchObj.group(2)}'
             # print(matchObj.group())
             # print(new_name)
             print(f'{name} -> {new_name}')
@@ -61,16 +71,6 @@ if __name__ == "__main__":
     # if op.isdir(args.path):
     #     args.root = args.path
     #     args.path = ''
-    seriesName = ''
-    seasonName = ''
-    if args.root != '':
-        root = op.abspath(args.root)
-        match = re.match(r'.+?\/(\d{1,2})', root)
-        if match is not None:
-            seriesName = Path(match.group(0)).parent.name
-            seasonName = match.group(1)
-    if seasonName == '' or seriesName == '':
-        exit()
 
     if args.name != '' and args.root != '':
         temp = str(op.join(args.root, args.name))
@@ -79,7 +79,7 @@ if __name__ == "__main__":
             args.name = ''
 
     if args.name != '' and args.root != '':
-        rename(seriesName, seasonName, args.root, args.name)
+        rename(args.root, args.name)
     elif args.root != '':
         files = []
         for suffix in suffixs:
@@ -88,7 +88,7 @@ if __name__ == "__main__":
         print(f'Total Files Number: {len(files)}')
         for path in files:
             root, name = op.split(path)
-            rename(seriesName, seasonName, root, name)
+            rename(root, name)
     else:
         print('not support')
     # os.system('PAUSE')
